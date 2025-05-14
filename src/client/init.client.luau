@@ -712,15 +712,38 @@ function tab:NewToggleComponent(Ctitle: string, Description: string, defaultValu
     local hoverColor  = Color3.fromRGB(80,80,80)
 
 	-- "refreshes" the toggle button, so new effects can be applied.
-	function component:UpdateToggleRender()
-		if component.value then
-			toggle.ImageColor3 = Raptor.AccentColor
-			toggle.Image = "rbxassetid://139201960422415"
-			else
-				toggle.ImageColor3 = Color3.new(240,240,240)
-				toggle.Image = "rbxassetid://104414845845962"
-		end
-	end
+	-- Customize these
+local FADE_TIME   = 0.2
+local ON_IMAGE    = "rbxassetid://139201960422415"
+local OFF_IMAGE   = "rbxassetid://104414845845962"
+local ON_COLOR    = Raptor.AccentColor
+local OFF_COLOR   = Color3.fromRGB(240, 240, 240)
+
+-- Pre‐make a TweenInfo
+local tweenInfo = TweenInfo.new(
+    FADE_TIME,               -- Time
+    Enum.EasingStyle.Quad,   -- EasingStyle
+    Enum.EasingDirection.InOut
+)
+
+function component:UpdateToggleRender()
+    -- figure out target image & color
+    local targetImage = component.value and ON_IMAGE or OFF_IMAGE
+    local targetColor = component.value and ON_COLOR or OFF_COLOR
+
+    -- 1) Fade out
+    local fadeOut = TweenService:Create(toggle, tweenInfo, { ImageTransparency = 1 })
+    fadeOut:Play()
+    fadeOut.Completed:Connect(function()
+        -- 2) swap image & color
+        toggle.Image      = targetImage
+        toggle.ImageColor3 = targetColor
+
+        -- 3) Fade back in
+        local fadeIn = TweenService:Create(toggle, tweenInfo, { ImageTransparency = 0 })
+        fadeIn:Play()
+    end)
+end
 	mouse.Button1Down:Connect(function()
 		if isHoveringOverObj(component.guiObject) then
 			component.value = not component.value
