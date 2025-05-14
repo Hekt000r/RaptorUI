@@ -639,7 +639,7 @@ end)
 tab.components = {}
 
 -- Creates a basic Toggle Component, click on it and it toggles.
-function tab:NewToggleComponent(label: string, defaultValue: boolean)
+function tab:NewToggleComponent(Ctitle: string, Description: string, defaultValue: boolean)
 	-- initalize component
 	local component = {}
 	component.index = tab.CalculateComponentIndex()
@@ -649,8 +649,42 @@ function tab:NewToggleComponent(label: string, defaultValue: boolean)
 	component.guiObject = Instance.new("Frame")
 	component.guiObject.Parent = tab.ContentArea
 	component.guiObject.BackgroundColor3 = Color3.fromRGB(60,60,60)
-	component.guiObject.Size = UDim2.new(0.8,0,0,36)
+	component.guiObject.Size = UDim2.new(0.8,0,0,48)
 	component.guiObject.Position = UDim2.new(0,24,0,tab.CalculateComponentOffset())
+
+	-- list element
+	local list = Instance.new("UIListLayout")
+	list.Parent = component.guiObject
+
+	list.FillDirection        = Enum.FillDirection.Vertical
+	list.HorizontalAlignment  = Enum.HorizontalAlignment.Left
+	list.VerticalAlignment    = Enum.VerticalAlignment.Center   -- ← add this
+	list.SortOrder            = Enum.SortOrder.LayoutOrder
+	list.Padding              = UDim.new(0, 18)                   -- gap between icon and text
+
+
+	-- left margin element
+	local ml = Instance.new("UIPadding")
+	ml.Parent = component.guiObject
+	ml.PaddingLeft = UDim.new(0,12)
+
+	-- title element
+	local title = Instance.new("TextLabel")
+	title.Font = Enum.Font.GothamBold
+	title.TextSize = 22
+	title.Text = Ctitle
+	title.Parent = component.guiObject
+	title.TextXAlignment = Enum.TextXAlignment.Left
+	title.TextColor3 = Color3.new(240,240,240)
+
+	-- description element
+	local desc = Instance.new("TextLabel")
+	desc.Font = Enum.Font.Gotham
+	desc.TextSize = 16
+	desc.Text = Description
+	desc.Parent = component.guiObject
+	desc.TextXAlignment = Enum.TextXAlignment.Left
+	desc.TextColor3 = Color3.new(240,240,240)
 
 	-- round container corners
 	local ro = Instance.new("UICorner")
@@ -677,7 +711,7 @@ local HomeTab = Window:NewTab("Home")
 local ScriptsTab = Window:NewTab("Scripts", "Script")
 local SettingsTab = Window:NewTab("Settings", "Settings")
 
-local TestToggle = HomeTab:NewToggleComponent("Test", false)
+local TestToggle = HomeTab:NewToggleComponent("Test", "This is a test toggle.", false)
 
 
 
