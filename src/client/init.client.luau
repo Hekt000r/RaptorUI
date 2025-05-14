@@ -189,6 +189,7 @@ function Raptor.NewWindow(title, width, height, draggable)
 	window.SGuiObject = Instance.new("ScreenGui")
 	window.guiObject = Instance.new("Frame")
 	window.isHidden = false
+	window.tabs = {}
 
 	-- Essential window functions
 
@@ -452,16 +453,33 @@ end)
 
 	-- Other methods/ functions
 
+	-- "Refreshes" every tab, so that new effects can be applied.
+	function window.UpdateTabRendering()
+		for _, tab in ipairs(window.tabs)do
+			if tab.id == Raptor.ActiveTabID then
+			tab.lbl.TextColor3 = Raptor.AccentColor
+            tab.ico.ImageColor3 = Raptor.AccentColor
+            tab.guiObject.BackgroundColor3 = Color3.fromRGB(60, 60, 60) 
+		else
+			tab.lbl.TextColor3 = Color3.fromRGB(240, 240, 240)
+            tab.ico.ImageColor3 = Color3.fromRGB(240, 240, 240)
+            tab.guiObject.BackgroundColor3 = Color3.fromRGB(42, 42, 42)
+			end
+		end
+
+	end
+
 	-- Create a new Raptor "Tab" in the specified window.
 	function window:NewTab(title, icon, id)
 	
     local tab = {}
+	table.insert(window.tabs, tab)
 	id = id or (function ()
 		Raptor.AvailableTabID = Raptor.AvailableTabID + 1
 		print("Automatically assigned tab id for: " .. title .. " is: " .. Raptor.AvailableTabID - 1)
 		return Raptor.AvailableTabID - 1
 	end)()
-
+	tab.id = id
 	icon = icon or "Home"
     -- container
     tab.guiObject = Instance.new("Frame")
@@ -496,7 +514,7 @@ list.Padding              = UDim.new(0, 8)                   -- gap between icon
     ico.LayoutOrder        = 1
     ico.BackgroundTransparency = 1
     ico.Image              = Raptor.GetIconFromName(icon)
-
+	tab.ico = ico
     -- text
     local lbl = Instance.new("TextLabel", tab.guiObject)
     lbl.Name            = "Label"
@@ -507,20 +525,13 @@ list.Padding              = UDim.new(0, 8)                   -- gap between icon
     lbl.TextSize        = 20
     lbl.TextXAlignment = Enum.TextXAlignment.Left
     lbl.Text            = title
+	tab.lbl = lbl
 
     tab.title = title
     tab.window = window
 
-	-- active window check
-	if Raptor.ActiveTabID == id then
-		lbl.TextColor3 = Raptor.AccentColor
-		ico.ImageColor3 = Raptor.AccentColor
-		tab.guiObject.BackgroundColor3 = Color3.fromRGB(60,60,60)
-	else
-		lbl.TextColor3 = Color3.fromRGB(240,240,240)
-		ico.ImageColor3 = Color3.fromRGB(240,240,240)
-	end
-
+	
+	window.UpdateTabRendering()
 	-- hovering effects
 
 local hoverInfo  = TweenInfo.new(0.3, Enum.EasingStyle.Quad, Enum.EasingDirection.Out)
@@ -541,6 +552,13 @@ tab.guiObject.MouseLeave:Connect(function()
     tween:Play()
 end)
 
+-- Handle clicking the frame
+mouse.Button1Down:Connect(function()
+	if isHoveringOverObj(tab.guiObject) then
+		Raptor.ActiveTabID = id
+		window.UpdateTabRendering()
+	end
+end)
 
 
 
