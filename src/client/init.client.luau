@@ -143,6 +143,29 @@ end
 
 Raptor = {}
 
+-- Raptor Variables
+
+Raptor.AccentColor = Color3.fromRGB(87, 255, 101)
+Raptor.ActiveTabID = 0
+Raptor.AvailableTabID = 0
+Raptor.CTabOff = 70
+-- Getters
+
+function Raptor.GetCurrentTabOffset(TabIndex)
+	Raptor.CTabOff = Raptor.CTabOff + 54
+	return Raptor.CTabOff - 54
+end
+
+-- Helper functions
+
+-- Gets a TextureID that can be used in Image labels/buttons by a name.
+function Raptor.GetIconFromName(name)
+	if name == "Home" then return "rbxassetid://137149858518531" end
+	if name == "Script" then return "rbxassetid://102776318872445" end
+	if name == "Settings" then return "rbxassetid://113217690053239" end
+	if name == "Info" then return "rbxassetid://138184429776239" end
+end
+
 -- Creates a new Raptor Window.
 function Raptor.NewWindow(title, width, height, draggable)
 	-- Initalize the window
@@ -414,14 +437,21 @@ end)
 	-- Other methods/ functions
 
 	-- Create a new Raptor "Tab" in the specified window.
-	function window:NewTab(title)
+	function window:NewTab(title, icon, id)
+	
     local tab = {}
+	id = id or (function ()
+		Raptor.AvailableTabID = Raptor.AvailableTabID + 1
+		print("Automatically assigned tab id for: " .. title .. " is: " .. Raptor.AvailableTabID - 1)
+		return Raptor.AvailableTabID - 1
+	end)()
 
+	icon = icon or "Home"
     -- container
     tab.guiObject = Instance.new("Frame")
     tab.guiObject.Name = "Tab"
     tab.guiObject.Size = UDim2.new(0, window.width/4, 0, 48)
-    tab.guiObject.Position = UDim2.new(0, 24, 0, 48)
+    tab.guiObject.Position = UDim2.new(0, 24, 0, Raptor.GetCurrentTabOffset(id))
     tab.guiObject.BackgroundColor3 = Color3.fromRGB(42,42,42)
     tab.guiObject.Parent = window.guiObject
 
@@ -431,22 +461,25 @@ end)
 
     -- list layout
     local list = Instance.new("UIListLayout", tab.guiObject)
-    -- after creating list = Instance.new("UIListLayout", tab.guiObject)
+
 
 list.FillDirection        = Enum.FillDirection.Horizontal
-list.HorizontalAlignment  = Enum.HorizontalAlignment.Left
+list.HorizontalAlignment  = Enum.HorizontalAlignment.Center
 list.VerticalAlignment    = Enum.VerticalAlignment.Center   -- ← add this
 list.SortOrder            = Enum.SortOrder.LayoutOrder
 list.Padding              = UDim.new(0, 8)                   -- gap between icon and text
 
+-- add left padding to list
 
+	local PO = Instance.new("UIPadding", tab.guiObject)
+	PO.PaddingLeft = UDim.new(0,8)
     -- icon
     local ico = Instance.new("ImageLabel", tab.guiObject)
     ico.Name               = "Icon"
     ico.Size               = UDim2.fromOffset(24,24)
     ico.LayoutOrder        = 1
     ico.BackgroundTransparency = 1
-    ico.Image              = "rbxassetid://111640715259011"
+    ico.Image              = Raptor.GetIconFromName(icon)
 
     -- text
     local lbl = Instance.new("TextLabel", tab.guiObject)
@@ -456,12 +489,21 @@ list.Padding              = UDim.new(0, 8)                   -- gap between icon
     lbl.Size            = UDim2.new(1, -32, 1, 0)  -- take remaining width
     lbl.Font            = Enum.Font.GothamBold
     lbl.TextSize        = 20
-    lbl.TextColor3      = Color3.fromRGB(240,240,240)
     lbl.TextXAlignment = Enum.TextXAlignment.Left
     lbl.Text            = title
 
     tab.title = title
     tab.window = window
+
+	-- active window check
+	if Raptor.ActiveTabID == id then
+		lbl.TextColor3 = Raptor.AccentColor
+		ico.ImageColor3 = Raptor.AccentColor
+		tab.guiObject.BackgroundColor3 = Color3.fromRGB(60,60,60)
+	else
+		lbl.TextColor3 = Color3.fromRGB(240,240,240)
+		ico.ImageColor3 = Color3.fromRGB(240,240,240)
+	end
 
     print("tab created")
     return tab
@@ -476,6 +518,8 @@ end
 
 local Window = Raptor.NewWindow("Welcome to RaptorUI")
 local HomeTab = Window:NewTab("Home")
+local ScriptsTab = Window:NewTab("Scripts", "Script")
+local SettingsTab = Window:NewTab("Settings", "Settings")
 
 
 
