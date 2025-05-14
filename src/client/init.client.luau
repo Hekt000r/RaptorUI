@@ -165,11 +165,17 @@ Raptor.AccentColor = Color3.fromRGB(87, 255, 101)
 Raptor.ActiveTabID = 0
 Raptor.AvailableTabID = 0
 Raptor.CTabOff = 70
+Raptor.ComponentOff = 24
 -- Getters
 
 function Raptor.GetCurrentTabOffset(TabIndex)
 	Raptor.CTabOff = Raptor.CTabOff + 54
 	return Raptor.CTabOff - 54
+end
+
+function Raptor.GetCurrentComponentOffset(ComponentIndex)
+	Raptor.ComponentOff = Raptor.ComponentOff + 28
+	return Raptor.ComponentOff - 28
 end
 
 -- Helper functions
@@ -202,6 +208,29 @@ function Raptor.NewWindow(title, width, height, draggable)
 
 	end
 
+	--Gets a tab object from its ID
+	function window.FindTabByID(id)
+    for _, tab in ipairs(window.tabs) do
+        if tab.id == id then
+            return tab
+        end
+    end
+    -- no match found
+    return nil
+end
+
+
+	-- Show the content for a tab through its ID
+function window.ShowContentArea(id)
+	local TabObj = window.FindTabByID(id)
+	TabObj.ContentArea.Visible = true
+end
+
+-- Hide the content for a tab through its ID
+function window.HideContentArea(id)
+	local TabObj = window.FindTabByID(id)
+	TabObj.ContentArea.Visible = false
+end
 
 	-- Set essential parameters such as size, position, parent, etc.
 	width = width or 600
@@ -459,10 +488,12 @@ end)
 			if tab.id == Raptor.ActiveTabID then
 			tab.lbl.TextColor3 = Raptor.AccentColor
             tab.ico.ImageColor3 = Raptor.AccentColor
+			window.ShowContentArea(tab.id)
             tab.guiObject.BackgroundColor3 = Color3.fromRGB(60, 60, 60) 
 		else
 			tab.lbl.TextColor3 = Color3.fromRGB(240, 240, 240)
             tab.ico.ImageColor3 = Color3.fromRGB(240, 240, 240)
+			window.HideContentArea(tab.id)
             tab.guiObject.BackgroundColor3 = Color3.fromRGB(42, 42, 42)
 			end
 		end
@@ -530,7 +561,23 @@ list.Padding              = UDim.new(0, 8)                   -- gap between icon
     tab.title = title
     tab.window = window
 
-	
+	function tab.CreateContentArea(id)
+	local contentF = Instance.new("ScrollingFrame")
+contentF.Parent = window.guiObject
+contentF.Position = UDim2.new(0,window.width / 3,0,48)
+contentF.Size = UDim2.new(0,window.width / 1.60, 0, window.height / 1.2 )
+contentF.CanvasSize = UDim2.new(0,window.width / 2, 0, window.height * 2)
+contentF.BackgroundColor3 = Color3.fromRGB(255,255,255)
+contentF.TopImage = "rbxassetid://16600089027"
+contentF.MidImage = "rbxassetid://16600089027"
+contentF.BottomImage = "rbxassetid://16600089027"
+contentF.BackgroundColor3 = Color3.fromRGB(42,42,42)
+contentF.Visible = false
+tab.ContentArea = contentF
+tab.ContentAreaID = id
+end
+
+tab.CreateContentArea(id)
 	window.UpdateTabRendering()
 	-- hovering effects
 
@@ -555,7 +602,7 @@ tab.guiObject.MouseLeave:Connect(function()
     tween:Play()
 end)
 ]]
--- Efficient way to check if mouse is over a tab (yes again, because Roblox doesn't know how to do it themselves.)
+-- Efficient and extremely precise way to check if mouse is over a tab (yes again, because Roblox doesn't know how to do it themselves.)
 local hoverTask2 = task.spawn(function()
 	while not window.isHidden == true do
 		task.wait(0.1)
@@ -579,9 +626,21 @@ mouse.Button1Down:Connect(function()
 	end
 end)
 
+-- tab content
+tab.components = {}
+
+-- Creates a basic Toggle Component, click on it and it toggles.
+function tab.NewToggleComponent(label, defaultValue)
+	local component = {}
+	table.insert(tab.components, component)
+
+	-- container
+	component.guiObject = Instance.new("Frame")
+	
+end
 
 
-    print("tab created")
+
     return tab
 end
 
@@ -596,6 +655,7 @@ local Window = Raptor.NewWindow("Welcome to RaptorUI")
 local HomeTab = Window:NewTab("Home")
 local ScriptsTab = Window:NewTab("Scripts", "Script")
 local SettingsTab = Window:NewTab("Settings", "Settings")
+
 
 
 
