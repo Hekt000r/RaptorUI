@@ -2,7 +2,7 @@
    Raptor UI Framework
    
    A super easy, simple, and beautiful UI framework for scripts.
-   Created by (discord) hekt0r_ / (reddit) Hektor_Gaming
+   Created by (discord) hekt0r_ / (reddit) Hektor_Gaming / (github) Hekt000r
    
    use this script all you want, credits would be nice but not required
    
@@ -238,7 +238,6 @@ function Raptor.NewWindow(title, width, height, draggable)
 		Enum.EasingStyle.Quad,
 		Enum.EasingDirection.Out
 	)
-	
 	-- an efficient way to check for mouse over object
 	local hoveringThread = task.spawn(function()
 		while true do
@@ -264,3 +263,4 @@ function Raptor.NewWindow(title, width, height, draggable)
 end
 
 Raptor.NewWindow("Welcome to RaptorUI", 600, 400, true)
+print("rojo test")
