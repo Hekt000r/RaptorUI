@@ -12,126 +12,142 @@
 
 --[[
 	@Author: Spynaz
+
+	Heavily modified by me (Hekt000r) so the dragging is smooth and a few other changes.
+
 	@Description: Enables dragging on GuiObjects. Supports both mouse and touch.
 	
 	For instructions on how to use this module, go to this link:
 	https://devforum.roblox.com/t/simple-module-for-creating-draggable-gui-elements/230678
 --]]
 
-local UDim2_new = UDim2.new
-
+local RunService      = game:GetService("RunService")
 local UserInputService = game:GetService("UserInputService")
+local UDim2_new       = UDim2.new
 
-local DraggableObject 		= {}
-DraggableObject.__index 	= DraggableObject
+local DraggableObject = {}
+DraggableObject.__index = DraggableObject
 
--- Sets up a new draggable object
+-- Constructor
 function DraggableObject.new(Object)
-	local self 			= {}
-	self.Object			= Object
-	self.DragStarted	= nil
-	self.DragEnded		= nil
-	self.Dragged		= nil
-	self.Dragging		= false
-
-	setmetatable(self, DraggableObject)
-
-	return self
+    local self = setmetatable({
+        Object       = Object,
+        DragStarted  = nil,
+        DragEnded    = nil,
+        Dragged      = nil,
+        Dragging     = false,
+        _renderConn  = nil,    -- RunService connection
+        _targetPos   = nil,    -- UDim2 goal
+    }, DraggableObject)
+    return self
 end
 
--- Enables dragging
+-- Enable dragging with smooth interpolation
 function DraggableObject:Enable()
-	local object			= self.Object
-	local dragInput			= nil
-	local dragStart			= nil
-	local startPos			= nil
-	local preparingToDrag	= false
+    local object          = self.Object
+    local dragInput       = nil
+    local dragStart       = nil
+    local startPos        = nil
+    local preparingToDrag = false
 
-	-- Updates the element
-	local function update(input)
-		local delta 		= input.Position - dragStart
-		local newPosition	= UDim2_new(startPos.X.Scale, startPos.X.Offset + delta.X, startPos.Y.Scale, startPos.Y.Offset + delta.Y)
-		object.Position 	= newPosition
+    -- When the user clicks down
+    self._connBegan = object.InputBegan:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.MouseButton1
+        or input.UserInputType == Enum.UserInputType.Touch then
+            preparingToDrag = true
 
-		return newPosition
-	end
+            -- Listen for release to end drag
+            local releaseConn
+            releaseConn = input.Changed:Connect(function()
+                if input.UserInputState == Enum.UserInputState.End then
+                    self.Dragging = false
+                    releaseConn:Disconnect()
+                    preparingToDrag = false
 
-	self.InputBegan = object.InputBegan:Connect(function(input)
-		if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
-			preparingToDrag = true
-			--[[if self.DragStarted then
-				self.DragStarted()
-			end
-			
-			dragging	 	= true
-			dragStart 		= input.Position
-			startPos 		= Element.Position
-			--]]
+                    -- stop the RenderStepped loop
+                    if self._renderConn then
+                        self._renderConn:Disconnect()
+                        self._renderConn = nil
+                    end
+                    self._targetPos = nil
 
-			local connection 
-			connection = input.Changed:Connect(function()
-				if input.UserInputState == Enum.UserInputState.End and (self.Dragging or preparingToDrag) then
-					self.Dragging = false
-					connection:Disconnect()
+                    if self.DragEnded then
+                        self.DragEnded()
+                    end
+                end
+            end)
+        end
+    end)
 
-					if self.DragEnded and not preparingToDrag then
-						self.DragEnded()
-					end
+    -- Track which input is the drag
+    self._connChangedLocal = object.InputChanged:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.MouseMovement
+        or input.UserInputType == Enum.UserInputType.Touch then
+            dragInput = input
+        end
+    end)
 
-					preparingToDrag = false
-				end
-			end)
-		end
-	end)
+    -- Main drag logic
+    self._connChangedGlobal = UserInputService.InputChanged:Connect(function(input)
+        if object.Parent == nil then
+            self:Disable()
+            return
+        end
 
-	self.InputChanged = object.InputChanged:Connect(function(input)
-		if input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch then
-			dragInput = input
-		end
-	end)
+        if preparingToDrag then
+            preparingToDrag = false
+            self.Dragging      = true
+            dragStart          = input.Position
+            startPos           = object.Position
 
-	self.InputChanged2 = UserInputService.InputChanged:Connect(function(input)
-		if object.Parent == nil then
-			self:Disable()
-			return
-		end
+            if self.DragStarted then
+                self.DragStarted()
+            end
 
-		if preparingToDrag then
-			preparingToDrag = false
+            -- Begin smooth-follow loop
+            self._renderConn = RunService.RenderStepped:Connect(function(dt)
+                if self._targetPos then
+                    -- dt*12 gives a “stiff” but smooth follow
+                    local alpha = math.clamp(dt * 12, 0, 1)
+                    object.Position = object.Position:Lerp(self._targetPos, alpha)
+                end
+            end)
+        end
 
-			if self.DragStarted then
-				self.DragStarted()
-			end
+        -- Update the target on each movement
+        if self.Dragging and input == dragInput then
+            local delta      = input.Position - dragStart
+            local desiredPos = UDim2_new(
+                startPos.X.Scale,  startPos.X.Offset + delta.X,
+                startPos.Y.Scale,  startPos.Y.Offset + delta.Y
+            )
+            self._targetPos = desiredPos
 
-			self.Dragging	= true
-			dragStart 		= input.Position
-			startPos 		= object.Position
-		end
-
-		if input == dragInput and self.Dragging then
-			local newPosition = update(input)
-
-			if self.Dragged then
-				self.Dragged(newPosition)
-			end
-		end
-	end)
+            if self.Dragged then
+                self.Dragged(desiredPos)
+            end
+        end
+    end)
 end
 
--- Disables dragging
+-- Disable dragging and clean up
 function DraggableObject:Disable()
-	self.InputBegan:Disconnect()
-	self.InputChanged:Disconnect()
-	self.InputChanged2:Disconnect()
+    if self._connBegan      then self._connBegan:Disconnect()      end
+    if self._connChangedLocal  then self._connChangedLocal:Disconnect()  end
+    if self._connChangedGlobal then self._connChangedGlobal:Disconnect() end
 
-	if self.Dragging then
-		self.Dragging = false
+    if self.Dragging and self.DragEnded then
+        self.DragEnded()
+    end
 
-		if self.DragEnded then
-			self.DragEnded()
-		end
-	end
+    if self._renderConn then
+        self._renderConn:Disconnect()
+        self._renderConn = nil
+    end
+    self._targetPos = nil
+    self.Dragging   = false
 end
+
 
 
 
@@ -504,6 +520,29 @@ list.Padding              = UDim.new(0, 8)                   -- gap between icon
 		lbl.TextColor3 = Color3.fromRGB(240,240,240)
 		ico.ImageColor3 = Color3.fromRGB(240,240,240)
 	end
+
+	-- hovering effects
+
+local hoverInfo  = TweenInfo.new(0.3, Enum.EasingStyle.Quad, Enum.EasingDirection.Out)
+
+local normalColor = Color3.fromRGB(42,42,42)
+local hoverColor  = Color3.fromRGB(60,60,60)
+
+-- MouseEnter: fade to hover
+tab.guiObject.MouseEnter:Connect(function()
+    local tween = TweenService:Create(tab.guiObject, hoverInfo, { BackgroundColor3 = hoverColor })
+    tween:Play()
+end)
+
+-- MouseLeave: fade back (or stay if active)
+tab.guiObject.MouseLeave:Connect(function()
+    local target = (Raptor.ActiveTabID == id) and hoverColor or normalColor
+    local tween  = TweenService:Create(tab.guiObject, hoverInfo, { BackgroundColor3 = target })
+    tween:Play()
+end)
+
+
+
 
     print("tab created")
     return tab
