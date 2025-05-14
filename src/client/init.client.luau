@@ -539,7 +539,10 @@ local hoverInfo  = TweenInfo.new(0.3, Enum.EasingStyle.Quad, Enum.EasingDirectio
 local normalColor = Color3.fromRGB(42,42,42)
 local hoverColor  = Color3.fromRGB(60,60,60)
 
+--[[ DEPRECATED ]]
+--Following code is commented out, and not used, although stays here for future reference and in case i need it.
 -- MouseEnter: fade to hover
+--[[
 tab.guiObject.MouseEnter:Connect(function()
     local tween = TweenService:Create(tab.guiObject, hoverInfo, { BackgroundColor3 = hoverColor })
     tween:Play()
@@ -551,6 +554,22 @@ tab.guiObject.MouseLeave:Connect(function()
     local tween  = TweenService:Create(tab.guiObject, hoverInfo, { BackgroundColor3 = target })
     tween:Play()
 end)
+]]
+-- Efficient way to check if mouse is over a tab (yes again, because Roblox doesn't know how to do it themselves.)
+local hoverTask2 = task.spawn(function()
+	while not window.isHidden == true do
+		task.wait(0.1)
+		if isHoveringOverObj(tab.guiObject) then
+			local tween = TweenService:Create(tab.guiObject, hoverInfo, { BackgroundColor3 = hoverColor })
+    		tween:Play()
+		else
+			  local target = (Raptor.ActiveTabID == id) and hoverColor or normalColor
+    local tween  = TweenService:Create(tab.guiObject, hoverInfo, { BackgroundColor3 = target })
+    tween:Play()
+		end
+	end
+end)
+
 
 -- Handle clicking the frame
 mouse.Button1Down:Connect(function()
