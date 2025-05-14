@@ -638,60 +638,92 @@ end)
 -- tab content
 tab.components = {}
 
--- Creates a basic Toggle Component, click on it and it toggles.
+-- Creates a basic Toggle Component: header row, description row, and a vertically centered toggle
 function tab:NewToggleComponent(Ctitle: string, Description: string, defaultValue: boolean)
-	-- initalize component
-	local component = {}
-	component.index = tab.CalculateComponentIndex()
-	component.value = defaultValue
-	table.insert(tab.components, component)
-	-- container
-	component.guiObject = Instance.new("Frame")
-	component.guiObject.Parent = tab.ContentArea
-	component.guiObject.BackgroundColor3 = Color3.fromRGB(60,60,60)
-	component.guiObject.Size = UDim2.new(0.8,0,0,48)
-	component.guiObject.Position = UDim2.new(0,24,0,tab.CalculateComponentOffset())
+    -- initialize component data
+    local component = {}
+    component.index = tab.CalculateComponentIndex()
+    component.value = defaultValue
+    component.isHidden = false
+    table.insert(tab.components, component)
 
-	-- list element
-	local list = Instance.new("UIListLayout")
-	list.Parent = component.guiObject
+    -- container frame: fixed header (24px) + desc (24px) + padding (16px) total 64px
+    component.guiObject = Instance.new("Frame")
+    component.guiObject.Parent = tab.ContentArea
+    component.guiObject.BackgroundColor3 = Color3.fromRGB(60,60,60)
+    component.guiObject.Size = UDim2.new(0.8, 0, 0, 52)
+    component.guiObject.Position = UDim2.new(0,24,0,tab.CalculateComponentOffset())
 
-	list.FillDirection        = Enum.FillDirection.Vertical
-	list.HorizontalAlignment  = Enum.HorizontalAlignment.Left
-	list.VerticalAlignment    = Enum.VerticalAlignment.Center   -- ← add this
-	list.SortOrder            = Enum.SortOrder.LayoutOrder
-	list.Padding              = UDim.new(0, 18)                   -- gap between icon and text
+    -- header row
+    local header = Instance.new("Frame")
+    header.Name = "Header"
+    header.Parent = component.guiObject
+    header.Size = UDim2.new(1,0,0,24)
+    header.BackgroundTransparency = 1
+    -- title centered horizontally
+    local title = Instance.new("TextLabel")
+    title.Name                 = "Title"
+    title.Parent               = header
+    title.AnchorPoint          = Vector2.new(0.5, 0.5)
+    title.Position             = UDim2.new(0.5,0,0.8,0)
+    title.Size                 = UDim2.new(0.9,0,0.9,0)
+    title.BackgroundTransparency = 1
+    title.Font                 = Enum.Font.GothamBold
+    title.TextSize             = 22
+    title.Text                 = Ctitle
+    title.TextXAlignment       = Enum.TextXAlignment.Left
+    title.TextYAlignment       = Enum.TextYAlignment.Top
+    title.TextColor3           = Color3.new(240,240,240)
 
+    -- description row
+    local desc = Instance.new("TextLabel")
+    desc.Name                  = "Description"
+    desc.Parent                = component.guiObject
+    desc.AnchorPoint           = Vector2.new(0.5, 0.5)
+    desc.Position              = UDim2.new(0.5,0, 0.7, 0)
+    desc.Size                  = UDim2.new(0.9,0,0.375,0)
+    desc.BackgroundTransparency = 1
+    desc.Font                  = Enum.Font.Gotham
+    desc.TextSize              = 16
+    desc.Text                  = Description
+    desc.TextXAlignment        = Enum.TextXAlignment.Left
+    desc.TextYAlignment        = Enum.TextYAlignment.Bottom
+    desc.TextColor3            = Color3.new(240,240,240)
 
-	-- left margin element
-	local ml = Instance.new("UIPadding")
-	ml.Parent = component.guiObject
-	ml.PaddingLeft = UDim.new(0,12)
+ -- toggle: absolutely positioned, vertically centered
+    local toggle = Instance.new("ImageButton")
+    toggle.Name        = "ToggleSwitch"
+    toggle.Parent      = component.guiObject
+    toggle.Image       = "rbxassetid://107478696584561"
+    toggle.ImageColor3 = Color3.new(1,1,1)
+    toggle.Size        = UDim2.new(0, 24, 0, 24)
+    toggle.AnchorPoint = Vector2.new(1, 0.5)
+    toggle.Position    = UDim2.new(1, -16, 0.5, 0)
 
-	-- title element
-	local title = Instance.new("TextLabel")
-	title.Font = Enum.Font.GothamBold
-	title.TextSize = 22
-	title.Text = Ctitle
-	title.Parent = component.guiObject
-	title.TextXAlignment = Enum.TextXAlignment.Left
-	title.TextColor3 = Color3.new(240,240,240)
+    -- corner rounding
+    local ro = Instance.new("UICorner")
+    ro.Parent = component.guiObject
+    ro.CornerRadius = UDim.new(0,10)
 
-	-- description element
-	local desc = Instance.new("TextLabel")
-	desc.Font = Enum.Font.Gotham
-	desc.TextSize = 16
-	desc.Text = Description
-	desc.Parent = component.guiObject
-	desc.TextXAlignment = Enum.TextXAlignment.Left
-	desc.TextColor3 = Color3.new(240,240,240)
+    -- hover behavior
+    local hoverInfo   = TweenInfo.new(0.3, Enum.EasingStyle.Quad, Enum.EasingDirection.Out)
+    local normalColor = Color3.fromRGB(60,60,60)
+    local hoverColor  = Color3.fromRGB(80,80,80)
 
-	-- round container corners
-	local ro = Instance.new("UICorner")
-	ro.Parent = component.guiObject
-	ro.CornerRadius = UDim.new(0,10)
-	
+    task.spawn(function()
+        while not window.isHidden and not component.isHidden do
+            task.wait(0.1)
+            if isHoveringOverObj(component.guiObject) then
+                TweenService:Create(component.guiObject, hoverInfo, { BackgroundColor3 = hoverColor }):Play()
+            else
+                TweenService:Create(component.guiObject, hoverInfo, { BackgroundColor3 = normalColor }):Play()
+            end
+        end
+    end)
 end
+
+
+
 
 
 
