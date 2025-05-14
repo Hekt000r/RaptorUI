@@ -143,12 +143,10 @@ end
 
 Raptor = {}
 
-type Window = {title: string, width: number, height: number, draggable: boolean}
-
 -- Creates a new Raptor Window.
 function Raptor.NewWindow(title, width, height, draggable)
 	-- Initalize the window
-	local window: Window = {}
+	local window = {}
 	window.SGuiObject = Instance.new("ScreenGui")
 	window.guiObject = Instance.new("Frame")
 	window.isHidden = false
@@ -410,12 +408,75 @@ window.closeButtonObj.MouseButton1Click:Connect(function()
         tw.Completed:Wait()
 		window:Remove()
     end
-
-
 	
 end)
 
-	
+	-- Other methods/ functions
+
+	-- Create a new Raptor "Tab" in the specified window.
+	function window:NewTab(title)
+    local tab = {}
+
+    -- container
+    tab.guiObject = Instance.new("Frame")
+    tab.guiObject.Name = "Tab"
+    tab.guiObject.Size = UDim2.new(0, window.width/4, 0, 48)
+    tab.guiObject.Position = UDim2.new(0, 24, 0, 48)
+    tab.guiObject.BackgroundColor3 = Color3.fromRGB(42,42,42)
+    tab.guiObject.Parent = window.guiObject
+
+    -- rounded corners
+    local RO = Instance.new("UICorner", tab.guiObject)
+    RO.CornerRadius = UDim.new(0, 8)
+
+    -- list layout
+    local list = Instance.new("UIListLayout", tab.guiObject)
+    -- after creating list = Instance.new("UIListLayout", tab.guiObject)
+
+list.FillDirection        = Enum.FillDirection.Horizontal
+list.HorizontalAlignment  = Enum.HorizontalAlignment.Left
+list.VerticalAlignment    = Enum.VerticalAlignment.Center   -- ← add this
+list.SortOrder            = Enum.SortOrder.LayoutOrder
+list.Padding              = UDim.new(0, 8)                   -- gap between icon and text
+
+
+    -- icon
+    local ico = Instance.new("ImageLabel", tab.guiObject)
+    ico.Name               = "Icon"
+    ico.Size               = UDim2.fromOffset(24,24)
+    ico.LayoutOrder        = 1
+    ico.BackgroundTransparency = 1
+    ico.Image              = "rbxassetid://111640715259011"
+
+    -- text
+    local lbl = Instance.new("TextLabel", tab.guiObject)
+    lbl.Name            = "Label"
+    lbl.LayoutOrder     = 2
+    lbl.BackgroundTransparency = 1
+    lbl.Size            = UDim2.new(1, -32, 1, 0)  -- take remaining width
+    lbl.Font            = Enum.Font.GothamBold
+    lbl.TextSize        = 20
+    lbl.TextColor3      = Color3.fromRGB(240,240,240)
+    lbl.TextXAlignment = Enum.TextXAlignment.Left
+    lbl.Text            = title
+
+    tab.title = title
+    tab.window = window
+
+    print("tab created")
+    return tab
 end
 
-Raptor.NewWindow("Welcome to RaptorUI")
+return window
+end
+
+
+
+-- Sample Usage code
+
+local Window = Raptor.NewWindow("Welcome to RaptorUI")
+local HomeTab = Window:NewTab("Home")
+
+
+
+
