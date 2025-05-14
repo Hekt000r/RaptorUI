@@ -694,9 +694,10 @@ function tab:NewToggleComponent(Ctitle: string, Description: string, defaultValu
     local toggle = Instance.new("ImageButton")
     toggle.Name        = "ToggleSwitch"
     toggle.Parent      = component.guiObject
-    toggle.Image       = "rbxassetid://107478696584561"
+    toggle.Image       = "rbxassetid://104414845845962"
+	toggle.BackgroundTransparency = 1
     toggle.ImageColor3 = Color3.new(1,1,1)
-    toggle.Size        = UDim2.new(0, 24, 0, 24)
+    toggle.Size        = UDim2.new(0, 33.9, 0, 30)
     toggle.AnchorPoint = Vector2.new(1, 0.5)
     toggle.Position    = UDim2.new(1, -16, 0.5, 0)
 
@@ -709,6 +710,26 @@ function tab:NewToggleComponent(Ctitle: string, Description: string, defaultValu
     local hoverInfo   = TweenInfo.new(0.3, Enum.EasingStyle.Quad, Enum.EasingDirection.Out)
     local normalColor = Color3.fromRGB(60,60,60)
     local hoverColor  = Color3.fromRGB(80,80,80)
+
+	-- "refreshes" the toggle button, so new effects can be applied.
+	function component:UpdateToggleRender()
+		if component.value then
+			toggle.ImageColor3 = Raptor.AccentColor
+			toggle.Image = "rbxassetid://139201960422415"
+			else
+				toggle.ImageColor3 = Color3.new(240,240,240)
+				toggle.Image = "rbxassetid://104414845845962"
+		end
+	end
+	mouse.Button1Down:Connect(function()
+		if isHoveringOverObj(component.guiObject) then
+			component.value = not component.value
+			component:UpdateToggleRender()
+		end
+	end)
+
+
+
 
     task.spawn(function()
         while not window.isHidden and not component.isHidden do
