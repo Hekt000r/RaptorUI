@@ -166,6 +166,10 @@ function Raptor.NewWindow(title, width, height, draggable)
 
 
 	-- Set essential parameters such as size, position, parent, etc.
+	width = width or 600
+	height = height or 400
+	draggable = draggable or true
+
 	window.guiObject.Size = UDim2.new(0, width, 0, height)
 	window.guiObject.Position = UDim2.new(0, 50, 0, 50)
 	window.SGuiObject.Parent = game.Players.LocalPlayer.PlayerGui
@@ -414,4 +418,4 @@ end)
 	
 end
 
-Raptor.NewWindow("Welcome to RaptorUI", 600, 400, true)
+Raptor.NewWindow("Welcome to RaptorUI")
