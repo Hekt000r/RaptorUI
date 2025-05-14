@@ -165,18 +165,15 @@ Raptor.AccentColor = Color3.fromRGB(87, 255, 101)
 Raptor.ActiveTabID = 0
 Raptor.AvailableTabID = 0
 Raptor.CTabOff = 70
-Raptor.ComponentOff = 24
+
 -- Getters
 
-function Raptor.GetCurrentTabOffset(TabIndex)
+function Raptor.GetCurrentTabOffset()
 	Raptor.CTabOff = Raptor.CTabOff + 54
 	return Raptor.CTabOff - 54
 end
 
-function Raptor.GetCurrentComponentOffset(ComponentIndex)
-	Raptor.ComponentOff = Raptor.ComponentOff + 28
-	return Raptor.ComponentOff - 28
-end
+
 
 -- Helper functions
 
@@ -560,6 +557,17 @@ list.Padding              = UDim.new(0, 8)                   -- gap between icon
 
     tab.title = title
     tab.window = window
+	tab.currentComponentIndex = 0
+	tab.currentComponentOffset = 12
+	function tab.CalculateComponentOffset()
+		tab.currentComponentOffset = tab.currentComponentOffset + 16
+		return tab.currentComponentOffset - 16
+	end
+	function tab.CalculateComponentIndex()
+		tab.currentComponentIndex = tab.currentComponentIndex + 1
+		return tab.currentComponentIndex - 1
+	end
+
 
 	function tab.CreateContentArea(id)
 	local contentF = Instance.new("ScrollingFrame")
@@ -572,6 +580,7 @@ contentF.TopImage = "rbxassetid://16600089027"
 contentF.MidImage = "rbxassetid://16600089027"
 contentF.BottomImage = "rbxassetid://16600089027"
 contentF.BackgroundColor3 = Color3.fromRGB(42,42,42)
+contentF.BorderSizePixel = 0
 contentF.Visible = false
 tab.ContentArea = contentF
 tab.ContentAreaID = id
@@ -625,17 +634,28 @@ mouse.Button1Down:Connect(function()
 		window.UpdateTabRendering()
 	end
 end)
-
+--[[     COMPONENTS     ]]
 -- tab content
 tab.components = {}
 
 -- Creates a basic Toggle Component, click on it and it toggles.
-function tab.NewToggleComponent(label, defaultValue)
+function tab:NewToggleComponent(label: string, defaultValue: boolean)
+	-- initalize component
 	local component = {}
+	component.index = tab.CalculateComponentIndex()
+	component.value = defaultValue
 	table.insert(tab.components, component)
-
 	-- container
 	component.guiObject = Instance.new("Frame")
+	component.guiObject.Parent = tab.ContentArea
+	component.guiObject.BackgroundColor3 = Color3.fromRGB(60,60,60)
+	component.guiObject.Size = UDim2.new(0.8,0,0,36)
+	component.guiObject.Position = UDim2.new(0,24,0,tab.CalculateComponentOffset())
+
+	-- round container corners
+	local ro = Instance.new("UICorner")
+	ro.Parent = component.guiObject
+	ro.CornerRadius = UDim.new(0,10)
 	
 end
 
@@ -652,10 +672,12 @@ end
 -- Sample Usage code
 
 local Window = Raptor.NewWindow("Welcome to RaptorUI")
+
 local HomeTab = Window:NewTab("Home")
 local ScriptsTab = Window:NewTab("Scripts", "Script")
 local SettingsTab = Window:NewTab("Settings", "Settings")
 
+local TestToggle = HomeTab:NewToggleComponent("Test", false)
 
 
 
