@@ -185,6 +185,31 @@ function Raptor.GetIconFromName(name)
 	if name == "Info" then return "rbxassetid://138184429776239" end
 end
 
+--[[ Keybind and event system ]]
+
+--Keybinds
+Raptor.KeyRegister = {}
+
+function Raptor:InsertIntoKeyRegister(key, comp)
+    local keybind = {}
+    keybind.key = key
+    keybind.AttachedCode = comp.AttachedCode 
+    table.insert(Raptor.KeyRegister, keybind)
+end
+
+local uis = game:GetService("UserInputService")
+uis.InputBegan:Connect(function(input, _gp)
+    for _, Keybind in ipairs(Raptor.KeyRegister) do
+        if Keybind.key == input.KeyCode then
+            print("Button pressed.. " .. tostring(input.KeyCode))
+            print("Executing code: " .. tostring(Keybind.AttachedCode))
+            loadstring(tostring(Keybind.AttachedCode))()
+        end
+    end
+end)
+
+
+
 -- Creates a new Raptor Window.
 function Raptor.NewWindow(title, width, height, draggable)
 	-- Initalize the window
@@ -1019,9 +1044,126 @@ function tab:NewDividerComponent()
     ro.Parent = component.guiObject
     ro.CornerRadius = UDim.new(0,10)
 
-
     component.guiObject.Size = UDim2.new(0.8, 0, 0, 4)           -- height will grow
     component.guiObject.Position = UDim2.new(0,24,0,tab.CalculateComponentOffset(component))
+
+
+
+    -- Creates a basic Keybind Component, runs its AttachedCode when keybind is pressed and clicking lets you select the keybind.
+function tab:NewTextboxComponent(Ctitle: string, DefaultKey: Enum.KeyCode)
+    -- initialize component data
+    local component = {}
+    component.index = tab.CalculateComponentIndex()
+    DefaultKey = DefaultKey or Enum.KeyCode.E
+    component.keybind = DefaultKey 
+    component.isHidden = false
+    table.insert(tab.components, component)
+
+    -- container frame: fixed header (24px) + desc (24px) + padding (16px) total 64px
+    component.guiObject = Instance.new("Frame")
+    component.guiObject.Parent = tab.ContentArea
+    component.guiObject.BackgroundColor3 = Color3.fromRGB(60,60,60)
+    component.guiObject.Size = UDim2.new(0.8, 0, 0, 42)
+    component.guiObject.Position = UDim2.new(0,24,0,tab.CalculateComponentOffset(component))
+
+    -- header row
+    local header = Instance.new("Frame")
+    header.Name = "Header"
+    header.Parent = component.guiObject
+    header.Size = UDim2.new(1,0,0,24)
+    header.BackgroundTransparency = 1
+    -- title centered horizontally
+    local title = Instance.new("TextLabel")
+    title.Name                 = "Title"
+    title.Parent               = header
+    title.AnchorPoint          = Vector2.new(0.5, 0.5)
+    title.Position             = UDim2.new(0.5,0,0.9,0)
+    title.Size                 = UDim2.new(0.9,0,0.9,0)
+    title.BackgroundTransparency = 1
+    title.Font                 = Enum.Font.GothamBold
+    title.TextSize             = 22
+    title.Text                 = Ctitle
+    title.TextXAlignment       = Enum.TextXAlignment.Left
+    title.TextYAlignment       = Enum.TextYAlignment.Top
+    title.TextColor3           = Color3.new(240,240,240)
+
+
+
+ -- toggle: absolutely positioned, vertically centered
+    local toggle = Instance.new("ImageButton")
+    toggle.Name        = "ToggleSwitch"
+    toggle.Parent      = component.guiObject
+    toggle.Image       = "rbxassetid://107586994656693"
+	toggle.BackgroundTransparency = 1
+    toggle.ImageColor3 = Color3.new(1,1,1)
+    toggle.Size        = UDim2.new(0, 22, 0, 25)
+    toggle.AnchorPoint = Vector2.new(1, 0.5)
+    toggle.Position    = UDim2.new(1, -16, 0.5, 0)
+
+    -- corner rounding
+    local ro = Instance.new("UICorner")
+    ro.Parent = component.guiObject
+    ro.CornerRadius = UDim.new(0,10)
+
+    -- hover behavior
+    local hoverInfo   = TweenInfo.new(0.3, Enum.EasingStyle.Quad, Enum.EasingDirection.Out)
+    local normalColor = Color3.fromRGB(60,60,60)
+    local hoverColor  = Color3.fromRGB(80,80,80)
+
+	-- "refreshes" the toggle button, so new effects can be applied.
+	-- Customize these
+local FADE_TIME   = 0.2
+local ON_IMAGE    = "rbxassetid://135358865064003"
+local OFF_IMAGE   = "rbxassetid://107586994656693"
+local ON_COLOR    = Raptor.AccentColor
+local OFF_COLOR   = Color3.fromRGB(240, 240, 240)
+
+-- Pre‐make a TweenInfo
+local tweenInfo = TweenInfo.new(
+    FADE_TIME,               -- Time
+    Enum.EasingStyle.Quad,   -- EasingStyle
+    Enum.EasingDirection.InOut
+)
+
+function component:UpdateToggleRender()
+    -- figure out target image & color
+    local targetImage = component.value and ON_IMAGE or OFF_IMAGE
+    local targetColor = component.value and ON_COLOR or OFF_COLOR
+
+    -- 1) Fade out
+    local fadeOut = TweenService:Create(toggle, tweenInfo, { ImageTransparency = 1 })
+    fadeOut:Play()
+    fadeOut.Completed:Connect(function()
+        -- 2) swap image & color
+        toggle.Image      = targetImage
+        toggle.ImageColor3 = targetColor
+
+        -- 3) Fade back in
+        local fadeIn = TweenService:Create(toggle, tweenInfo, { ImageTransparency = 0 })
+        fadeIn:Play()
+    end)
+end
+	mouse.Button1Down:Connect(function()
+		if isHoveringOverObj(component.guiObject) then
+			component.value = not component.value
+			component:UpdateToggleRender()
+		end
+	end)
+    component.AttachedCode = "print('Executed successfully!')"
+    Raptor:InsertIntoKeyRegister(Enum.KeyCode.E, component)
+
+
+    task.spawn(function()
+        while not window.isHidden and not component.isHidden do
+            task.wait(0.1)
+            if isHoveringOverObj(component.guiObject) then
+                TweenService:Create(component.guiObject, hoverInfo, { BackgroundColor3 = hoverColor }):Play()
+            else
+                TweenService:Create(component.guiObject, hoverInfo, { BackgroundColor3 = normalColor }):Play()
+            end
+        end
+    end)
+end
 
 end
 
@@ -1056,5 +1198,7 @@ local AntiKick = ScriptsTab:NewCheckboxComponent("Anti-Kick", "Prevents client-s
 
 local DebugModeToggle2 =ScriptsTab:NewToggleComponent("Debug-mode", "Enables debug mode", false)
 local AntiLag2 = ScriptsTab:NewToggleComponent("Anti-Lag", "Lowers graphics and removes textures to decrease lag",false)
+
+local test = ScriptsTab:NewTextboxComponent("test", Enum.KeyCode.E)
 
 
