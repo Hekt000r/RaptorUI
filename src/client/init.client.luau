@@ -198,6 +198,57 @@ function Raptor:InsertIntoKeyRegister(key, comp)
 end
 
 local uis = game:GetService("UserInputService")
+
+
+-- Event system
+
+Raptor.Events = {}
+Raptor.MouseEvents = {}
+
+function Raptor:NewEvent(callbackfn, component)
+    local event = {}
+    event.component = component
+    event.callbackfn = callbackfn
+    table.insert(Raptor.Events, event)
+end
+
+function Raptor:NewMouseEvent(callbackfn, component)
+    local event = {}
+    event.component = component
+    event.callbackfn = callbackfn
+    table.insert(Raptor.MouseEvents, event)
+end
+
+
+--[[ Pop ups ]]
+
+-- Currently, one popup  at a time is supported.
+Raptor.Popup = {}
+
+function Raptor:DeletePopUp()
+    Raptor.Popup.SGuiObject:ClearAllChildren()
+    Raptor.Popup.SGuiObject:Destroy()
+    table.remove(Raptor.Popup, 1)
+end
+
+-- Takes a Component (GUI) and displays it over all other GUI's
+function Raptor:NewPopUp(comp, cancelKey)
+    cancelKey = cancelKey or Enum.KeyCode.Escape
+    local popup = {}
+    popup.SGuiObject = Instance.new("ScreenGui")
+    popup.guiObject = comp
+    popup.guiObject.Parent = popup.SGuiObject
+    popup.SGuiObject.Parent = game.Players.LocalPlayer.PlayerGui
+    Raptor.Popup = popup
+    uis.InputBegan:Connect(function(input, _gp)
+        if input.KeyCode == cancelKey then
+            Raptor:DeletePopUp()
+        end
+    end)
+
+end
+
+
 uis.InputBegan:Connect(function(input, _gp)
     for _, Keybind in ipairs(Raptor.KeyRegister) do
         if Keybind.key == input.KeyCode then
@@ -206,9 +257,17 @@ uis.InputBegan:Connect(function(input, _gp)
             loadstring(tostring(Keybind.AttachedCode))()
         end
     end
+     for _, event in ipairs(Raptor.Events) do
+            if input.KeyCode == event.component.keybind then
+                event.callbackfn()
+            end
+        end
+    for _, event in ipairs(Raptor.MouseEvents) do
+            if input.UserInputType == Enum.UserInputType.MouseButton1 then
+                event.callbackfn()
+            end
+        end
 end)
-
-
 
 -- Creates a new Raptor Window.
 function Raptor.NewWindow(title, width, height, draggable)
@@ -461,7 +520,8 @@ window.closeButtonObj.MouseButton1Click:Connect(function()
         window.guiObject,   
         window.topBarObj,   
 		window.closeButtonObj,
-		window.minimizeButtonObj
+		window.minimizeButtonObj,
+        window.tabs,
     }
 
 
@@ -472,7 +532,7 @@ window.closeButtonObj.MouseButton1Click:Connect(function()
 
     for _, root in ipairs(roots) do
         -- Fade the frame’s background
-        if root:IsA("GuiObject") then
+        if root:IsA("Frame") then
             local goals = { BackgroundTransparency = 1 }
             local tw = TweenService:Create(root, tweenInfo, goals) 
             tw:Play()
@@ -491,7 +551,13 @@ window.closeButtonObj.MouseButton1Click:Connect(function()
                 local tw = TweenService:Create(obj, tweenInfo, goals)  
                 tw:Play()
                 table.insert(tweens, tw)
+            elseif obj:IsA("Frame") or obj:IsA("ScrollingFrame") then
+                local goals = { BackgroundTransparency = 1 }
+                local tw = TweenService:Create(obj, tweenInfo, goals)  
+                tw:Play()
+                table.insert(tweens, tw)
             end
+            
         end
     end
 
@@ -712,7 +778,7 @@ function tab:NewToggleComponent(Ctitle: string, Description: string, defaultValu
 
 
  -- toggle: absolutely positioned, vertically centered
-    local toggle = Instance.new("ImageButton")
+    local toggle = Instance.new("ImageLabel")
     toggle.Name        = "ToggleSwitch"
     toggle.Parent      = component.guiObject
     toggle.Image       = "rbxassetid://104414845845962"
@@ -827,7 +893,7 @@ function tab:NewCheckboxComponent(Ctitle: string, Description: string, defaultVa
 
 
  -- toggle: absolutely positioned, vertically centered
-    local toggle = Instance.new("ImageButton")
+    local toggle = Instance.new("ImageLabel")
     toggle.Name        = "ToggleSwitch"
     toggle.Parent      = component.guiObject
     toggle.Image       = "rbxassetid://107586994656693"
@@ -1048,14 +1114,176 @@ function tab:NewDividerComponent()
     component.guiObject.Position = UDim2.new(0,24,0,tab.CalculateComponentOffset(component))
 
 
-
+end
     -- Creates a basic Keybind Component, runs its AttachedCode when keybind is pressed and clicking lets you select the keybind.
-function tab:NewTextboxComponent(Ctitle: string, DefaultKey: Enum.KeyCode)
+function tab:NewKeybindComponent(Ctitle: string, DefaultKey: Enum.KeyCode)
     -- initialize component data
     local component = {}
     component.index = tab.CalculateComponentIndex()
     DefaultKey = DefaultKey or Enum.KeyCode.E
     component.keybind = DefaultKey 
+    component.isHidden = false
+    table.insert(tab.components, component)
+
+
+
+
+    -- container frame: fixed header (24px) + desc (24px) + padding (16px) total 64px
+    component.guiObject = Instance.new("Frame")
+    component.guiObject.Parent = tab.ContentArea
+    component.guiObject.BackgroundColor3 = Color3.fromRGB(60,60,60)
+    component.guiObject.Size = UDim2.new(0.8, 0, 0, 42)
+    component.guiObject.Position = UDim2.new(0,24,0,tab.CalculateComponentOffset(component))
+
+    -- header row
+    local header = Instance.new("Frame")
+    header.Name = "Header"
+    header.Parent = component.guiObject
+    header.Size = UDim2.new(1,0,0,24)
+    header.BackgroundTransparency = 1
+    -- title centered horizontally
+    local title = Instance.new("TextLabel")
+    title.Name                 = "Title"
+    title.Parent               = header
+    title.AnchorPoint          = Vector2.new(0.5, 0.5)
+    title.Position             = UDim2.new(0.5,0,0.9,0)
+    title.Size                 = UDim2.new(0.9,0,0.9,0)
+    title.BackgroundTransparency = 1
+    title.Font                 = Enum.Font.GothamBold
+    title.TextSize             = 22
+    title.Text                 = Ctitle
+    title.TextXAlignment       = Enum.TextXAlignment.Left
+    title.TextYAlignment       = Enum.TextYAlignment.Top
+    title.TextColor3           = Color3.new(240,240,240)
+
+
+
+ -- kbd: absolutely positioned, vertically centered
+    local kbd = Instance.new("TextLabel")
+    kbd.Name        = "kbdSwitch"
+    kbd.Parent      = component.guiObject
+    kbd.Size        = UDim2.new(0, 28, 0, 28)
+    kbd.AnchorPoint = Vector2.new(1, 0.5)
+    kbd.Position    = UDim2.new(1, -16, 0.5, 0)
+    kbd.BackgroundColor3 = Color3.fromRGB(42,42,42)
+    kbd.Text = component.keybind.Name
+    kbd.TextColor3 = Color3.fromRGB(240,240,240)
+    kbd.TextSize = 24
+    kbd.Font = Enum.Font.GothamBold
+
+    -- corner rounding
+    local ro = Instance.new("UICorner")
+    ro.Parent = kbd
+    ro.CornerRadius = UDim.new(0,6)
+
+    -- kbd corner rounding
+    local kro = Instance.new("UICorner")
+    kro.Parent = component.guiObject
+    kro.CornerRadius = UDim.new(0,10)
+
+    -- hover behavior
+    local hoverInfo   = TweenInfo.new(0.3, Enum.EasingStyle.Quad, Enum.EasingDirection.Out)
+    local normalColor = Color3.fromRGB(60,60,60)
+    local hoverColor  = Color3.fromRGB(80,80,80)
+
+    -- callback / event
+    function component.OnKeyPressed(callbackfn)
+        Raptor:NewEvent(callbackfn, component)
+    end
+    
+
+    function component:RefreshKbd()
+        kbd.Text = component.keybind.Name
+    end
+
+    mouse.Button1Down:Connect(function()
+        if isHoveringOverObj(component.guiObject) and Raptor.ActiveTabID == tab.id then
+            -- keybind popup
+        local p = Instance.new("Frame")
+        p.Size = UDim2.new(0,200,0,50)
+        p.BackgroundColor3 = Color3.fromRGB(90,90,90)
+        p.Position = UDim2.new(0.5,0,0.5,0)
+        -- corner rounding
+        local r1 = Instance.new("UICorner")
+        r1.Parent = p
+
+        -- text
+        local t1 = Instance.new("TextLabel")
+        t1.Text = "Enter keybind"
+        t1.Font = Enum.Font.Gotham
+        t1.TextSize = 24
+        t1.TextColor3 = Color3.new(240,240,240)
+        t1.Parent = p
+        t1.Size = UDim2.new(1,0,0,24)
+        t1.BorderSizePixel = 0
+        t1.BackgroundTransparency = 1
+        t1.AnchorPoint = Vector2.new(p.AbsolutePosition.X, p.AbsolutePosition.Y)
+        t1.TextXAlignment = Enum.TextXAlignment.Center
+        t1.Position = UDim2.new(0,0,0.1,0)
+
+        -- "press <esc> to close" text
+
+        local t2 = Instance.new("TextLabel")
+        t2.Text = "Press Escape to close this popup."
+        t2.Font = Enum.Font.Gotham
+        t2.TextSize = 12
+        t2.TextColor3 = Color3.new(240,240,240)
+        t2.Parent = p
+        t2.Size = UDim2.new(1,0,0,24)
+        t2.BorderSizePixel = 0
+        t2.BackgroundTransparency = 1
+        t2.AnchorPoint = Vector2.new(p.AbsolutePosition.X, p.AbsolutePosition.Y)
+        t2.TextXAlignment = Enum.TextXAlignment.Center
+        t2.Position = UDim2.new(0,0,0,p.Size.Height.Offset - 24)
+
+        Raptor:NewPopUp(p)
+
+        local connection
+        connection = uis.InputBegan:Connect(function(input, _gp)
+            if input.UserInputType == Enum.UserInputType.Keyboard then
+                if input.KeyCode == Enum.KeyCode.Escape then
+                    return
+                end
+                component.keybind = input.KeyCode
+                Raptor:DeletePopUp()
+                connection:Disconnect()
+                component:RefreshKbd()
+            end
+        end)
+
+        task.delay(5, function()
+            if connection then
+                connection:Disconnect()
+                Raptor:DeletePopUp()
+            end
+        end)
+
+        return
+        end
+    end)
+
+
+
+    task.spawn(function()
+        while not window.isHidden and not component.isHidden do
+            task.wait(0.1)
+            if isHoveringOverObj(component.guiObject) then
+                TweenService:Create(component.guiObject, hoverInfo, { BackgroundColor3 = hoverColor }):Play()
+            else
+                TweenService:Create(component.guiObject, hoverInfo, { BackgroundColor3 = normalColor }):Play()
+            end
+        end
+    end)
+
+return component
+end
+
+    -- Creates a basic Clickable Component: click to run AttachedCode or trigger event
+function tab:NewClickableComponent(Ctitle: string, Description: string, defaultValue: boolean)
+    -- initialize component data
+    local component = {}
+    component.index = tab.CalculateComponentIndex()
+    component.value = defaultValue
     component.isHidden = false
     table.insert(tab.components, component)
 
@@ -1090,13 +1318,13 @@ function tab:NewTextboxComponent(Ctitle: string, DefaultKey: Enum.KeyCode)
 
 
  -- toggle: absolutely positioned, vertically centered
-    local toggle = Instance.new("ImageButton")
+    local toggle = Instance.new("ImageLabel")
     toggle.Name        = "ToggleSwitch"
     toggle.Parent      = component.guiObject
-    toggle.Image       = "rbxassetid://107586994656693"
+    toggle.Image       = "rbxassetid://12804017021"
 	toggle.BackgroundTransparency = 1
     toggle.ImageColor3 = Color3.new(1,1,1)
-    toggle.Size        = UDim2.new(0, 22, 0, 25)
+    toggle.Size        = UDim2.new(0, 25, 0, 25)
     toggle.AnchorPoint = Vector2.new(1, 0.5)
     toggle.Position    = UDim2.new(1, -16, 0.5, 0)
 
@@ -1110,47 +1338,15 @@ function tab:NewTextboxComponent(Ctitle: string, DefaultKey: Enum.KeyCode)
     local normalColor = Color3.fromRGB(60,60,60)
     local hoverColor  = Color3.fromRGB(80,80,80)
 
-	-- "refreshes" the toggle button, so new effects can be applied.
-	-- Customize these
-local FADE_TIME   = 0.2
-local ON_IMAGE    = "rbxassetid://135358865064003"
-local OFF_IMAGE   = "rbxassetid://107586994656693"
-local ON_COLOR    = Raptor.AccentColor
-local OFF_COLOR   = Color3.fromRGB(240, 240, 240)
-
--- Pre‐make a TweenInfo
-local tweenInfo = TweenInfo.new(
-    FADE_TIME,               -- Time
-    Enum.EasingStyle.Quad,   -- EasingStyle
-    Enum.EasingDirection.InOut
-)
-
-function component:UpdateToggleRender()
-    -- figure out target image & color
-    local targetImage = component.value and ON_IMAGE or OFF_IMAGE
-    local targetColor = component.value and ON_COLOR or OFF_COLOR
-
-    -- 1) Fade out
-    local fadeOut = TweenService:Create(toggle, tweenInfo, { ImageTransparency = 1 })
-    fadeOut:Play()
-    fadeOut.Completed:Connect(function()
-        -- 2) swap image & color
-        toggle.Image      = targetImage
-        toggle.ImageColor3 = targetColor
-
-        -- 3) Fade back in
-        local fadeIn = TweenService:Create(toggle, tweenInfo, { ImageTransparency = 0 })
-        fadeIn:Play()
-    end)
-end
 	mouse.Button1Down:Connect(function()
 		if isHoveringOverObj(component.guiObject) then
-			component.value = not component.value
-			component:UpdateToggleRender()
+            TweenService:Create(component.guiObject, hoverInfo, {BackgroundColor3 = Color3.fromRGB(42,42,42)}):Play()
 		end
 	end)
-    component.AttachedCode = "print('Executed successfully!')"
-    Raptor:InsertIntoKeyRegister(Enum.KeyCode.E, component)
+
+    function component.OnClick(callbackfn)
+        Raptor:NewEvent(callbackfn, component)
+    end
 
 
     task.spawn(function()
@@ -1163,9 +1359,8 @@ end
             end
         end
     end)
-end
-
-end
+    return component
+    end
 
 
     return tab
@@ -1199,6 +1394,14 @@ local AntiKick = ScriptsTab:NewCheckboxComponent("Anti-Kick", "Prevents client-s
 local DebugModeToggle2 =ScriptsTab:NewToggleComponent("Debug-mode", "Enables debug mode", false)
 local AntiLag2 = ScriptsTab:NewToggleComponent("Anti-Lag", "Lowers graphics and removes textures to decrease lag",false)
 
-local test = ScriptsTab:NewTextboxComponent("test", Enum.KeyCode.E)
+local test = ScriptsTab:NewKeybindComponent("test", Enum.KeyCode.Z)
 
 
+
+function test2()
+    print("execution")
+end
+test.OnKeyPressed(test2)
+
+local Clickable = SettingsTab:NewClickableComponent("Disable anticheat")
+Clickable.OnClick(test2)
