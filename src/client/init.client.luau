@@ -553,15 +553,25 @@ list.Padding              = UDim.new(0, 8)                   -- gap between icon
     lbl.TextSize        = 20
     lbl.TextXAlignment = Enum.TextXAlignment.Left
     lbl.Text            = title
-	tab.lbl = lbl
-
+	tab.lbl = lbl 
     tab.title = title
     tab.window = window
 	tab.currentComponentIndex = 0
 	tab.currentComponentOffset = 12
-	function tab.CalculateComponentOffset()
-		tab.currentComponentOffset = tab.currentComponentOffset + 16
-		return tab.currentComponentOffset - 16
+    tab.componentMargin = 8 -- The vertical distance between components in pixels.
+
+	function tab.CalculateComponentOffset(comp)
+		tab.currentComponentOffset = tab.currentComponentOffset + comp.guiObject.AbsoluteSize.Y + tab.componentMargin
+        print(tab.currentComponentOffset - comp.guiObject.AbsoluteSize.Y)
+        print(comp.guiObject.Parent)
+		return tab.currentComponentOffset - comp.guiObject.AbsoluteSize.Y
+	end
+    function tab.CalculateComponentOffset2(comp)
+        print(comp.layout)
+		tab.currentComponentOffset = tab.currentComponentOffset + comp.layout.AbsoluteContentSize.Y + tab.componentMargin
+        print(tab.currentComponentOffset - comp.layout.AbsoluteContentSize.Y)
+        print(comp.guiObject.Parent)
+		return tab.currentComponentOffset - comp.layout.AbsoluteContentSize.Y
 	end
 	function tab.CalculateComponentIndex()
 		tab.currentComponentIndex = tab.currentComponentIndex + 1
@@ -651,8 +661,8 @@ function tab:NewToggleComponent(Ctitle: string, Description: string, defaultValu
     component.guiObject = Instance.new("Frame")
     component.guiObject.Parent = tab.ContentArea
     component.guiObject.BackgroundColor3 = Color3.fromRGB(60,60,60)
-    component.guiObject.Size = UDim2.new(0.8, 0, 0, 52)
-    component.guiObject.Position = UDim2.new(0,24,0,tab.CalculateComponentOffset())
+    component.guiObject.Size = UDim2.new(0.8, 0, 0, 42)
+    component.guiObject.Position = UDim2.new(0,24,0,tab.CalculateComponentOffset(component))
 
     -- header row
     local header = Instance.new("Frame")
@@ -665,7 +675,7 @@ function tab:NewToggleComponent(Ctitle: string, Description: string, defaultValu
     title.Name                 = "Title"
     title.Parent               = header
     title.AnchorPoint          = Vector2.new(0.5, 0.5)
-    title.Position             = UDim2.new(0.5,0,0.8,0)
+    title.Position             = UDim2.new(0.5,0,0.9,0)
     title.Size                 = UDim2.new(0.9,0,0.9,0)
     title.BackgroundTransparency = 1
     title.Font                 = Enum.Font.GothamBold
@@ -675,20 +685,6 @@ function tab:NewToggleComponent(Ctitle: string, Description: string, defaultValu
     title.TextYAlignment       = Enum.TextYAlignment.Top
     title.TextColor3           = Color3.new(240,240,240)
 
-    -- description row
-    local desc = Instance.new("TextLabel")
-    desc.Name                  = "Description"
-    desc.Parent                = component.guiObject
-    desc.AnchorPoint           = Vector2.new(0.5, 0.5)
-    desc.Position              = UDim2.new(0.5,0, 0.7, 0)
-    desc.Size                  = UDim2.new(0.9,0,0.375,0)
-    desc.BackgroundTransparency = 1
-    desc.Font                  = Enum.Font.Gotham
-    desc.TextSize              = 16
-    desc.Text                  = Description
-    desc.TextXAlignment        = Enum.TextXAlignment.Left
-    desc.TextYAlignment        = Enum.TextYAlignment.Bottom
-    desc.TextColor3            = Color3.new(240,240,240)
 
  -- toggle: absolutely positioned, vertically centered
     local toggle = Instance.new("ImageButton")
@@ -766,9 +762,268 @@ end
     end)
 end
 
+-- Creates a basic Toggle Component: header row, description row, and a vertically centered toggle
+function tab:NewCheckboxComponent(Ctitle: string, Description: string, defaultValue: boolean)
+    -- initialize component data
+    local component = {}
+    component.index = tab.CalculateComponentIndex()
+    component.value = defaultValue
+    component.isHidden = false
+    table.insert(tab.components, component)
+
+    -- container frame: fixed header (24px) + desc (24px) + padding (16px) total 64px
+    component.guiObject = Instance.new("Frame")
+    component.guiObject.Parent = tab.ContentArea
+    component.guiObject.BackgroundColor3 = Color3.fromRGB(60,60,60)
+    component.guiObject.Size = UDim2.new(0.8, 0, 0, 42)
+    component.guiObject.Position = UDim2.new(0,24,0,tab.CalculateComponentOffset(component))
+
+    -- header row
+    local header = Instance.new("Frame")
+    header.Name = "Header"
+    header.Parent = component.guiObject
+    header.Size = UDim2.new(1,0,0,24)
+    header.BackgroundTransparency = 1
+    -- title centered horizontally
+    local title = Instance.new("TextLabel")
+    title.Name                 = "Title"
+    title.Parent               = header
+    title.AnchorPoint          = Vector2.new(0.5, 0.5)
+    title.Position             = UDim2.new(0.5,0,0.9,0)
+    title.Size                 = UDim2.new(0.9,0,0.9,0)
+    title.BackgroundTransparency = 1
+    title.Font                 = Enum.Font.GothamBold
+    title.TextSize             = 22
+    title.Text                 = Ctitle
+    title.TextXAlignment       = Enum.TextXAlignment.Left
+    title.TextYAlignment       = Enum.TextYAlignment.Top
+    title.TextColor3           = Color3.new(240,240,240)
 
 
 
+ -- toggle: absolutely positioned, vertically centered
+    local toggle = Instance.new("ImageButton")
+    toggle.Name        = "ToggleSwitch"
+    toggle.Parent      = component.guiObject
+    toggle.Image       = "rbxassetid://107586994656693"
+	toggle.BackgroundTransparency = 1
+    toggle.ImageColor3 = Color3.new(1,1,1)
+    toggle.Size        = UDim2.new(0, 22, 0, 25)
+    toggle.AnchorPoint = Vector2.new(1, 0.5)
+    toggle.Position    = UDim2.new(1, -16, 0.5, 0)
+
+    -- corner rounding
+    local ro = Instance.new("UICorner")
+    ro.Parent = component.guiObject
+    ro.CornerRadius = UDim.new(0,10)
+
+    -- hover behavior
+    local hoverInfo   = TweenInfo.new(0.3, Enum.EasingStyle.Quad, Enum.EasingDirection.Out)
+    local normalColor = Color3.fromRGB(60,60,60)
+    local hoverColor  = Color3.fromRGB(80,80,80)
+
+	-- "refreshes" the toggle button, so new effects can be applied.
+	-- Customize these
+local FADE_TIME   = 0.2
+local ON_IMAGE    = "rbxassetid://135358865064003"
+local OFF_IMAGE   = "rbxassetid://107586994656693"
+local ON_COLOR    = Raptor.AccentColor
+local OFF_COLOR   = Color3.fromRGB(240, 240, 240)
+
+-- Pre‐make a TweenInfo
+local tweenInfo = TweenInfo.new(
+    FADE_TIME,               -- Time
+    Enum.EasingStyle.Quad,   -- EasingStyle
+    Enum.EasingDirection.InOut
+)
+
+function component:UpdateToggleRender()
+    -- figure out target image & color
+    local targetImage = component.value and ON_IMAGE or OFF_IMAGE
+    local targetColor = component.value and ON_COLOR or OFF_COLOR
+
+    -- 1) Fade out
+    local fadeOut = TweenService:Create(toggle, tweenInfo, { ImageTransparency = 1 })
+    fadeOut:Play()
+    fadeOut.Completed:Connect(function()
+        -- 2) swap image & color
+        toggle.Image      = targetImage
+        toggle.ImageColor3 = targetColor
+
+        -- 3) Fade back in
+        local fadeIn = TweenService:Create(toggle, tweenInfo, { ImageTransparency = 0 })
+        fadeIn:Play()
+    end)
+end
+	mouse.Button1Down:Connect(function()
+		if isHoveringOverObj(component.guiObject) then
+			component.value = not component.value
+			component:UpdateToggleRender()
+		end
+	end)
+
+
+
+
+    task.spawn(function()
+        while not window.isHidden and not component.isHidden do
+            task.wait(0.1)
+            if isHoveringOverObj(component.guiObject) then
+                TweenService:Create(component.guiObject, hoverInfo, { BackgroundColor3 = hoverColor }):Play()
+            else
+                TweenService:Create(component.guiObject, hoverInfo, { BackgroundColor3 = normalColor }):Play()
+            end
+        end
+    end)
+end
+
+-- Creates a new Label component used to display information or text on the screen.
+function tab:NewLabelComponent(Ctitle: string, Description: string, defaultValue: boolean)
+    -- initialize component data
+    local component = {}
+    component.index = tab.CalculateComponentIndex()
+    component.value = defaultValue
+    component.isHidden = false
+    table.insert(tab.components, component)
+
+    -- container frame: fixed header (24px) + desc (24px) + padding (16px) total 64px
+    component.guiObject = Instance.new("Frame")
+    component.guiObject.Parent = tab.ContentArea
+    component.guiObject.BackgroundColor3 = Color3.fromRGB(60,60,60)
+    component.guiObject.Size = UDim2.new(0.8, 0, 0, 42)
+    component.guiObject.Position = UDim2.new(0,24,0,tab.CalculateComponentOffset(component))
+
+    -- header row
+    local header = Instance.new("Frame")
+    header.Name = "Header"
+    header.Parent = component.guiObject
+    header.Size = UDim2.new(1,0,0,24)
+    header.BackgroundTransparency = 1
+    -- title centered horizontally
+    local title = Instance.new("TextLabel")
+    title.Name                 = "Title"
+    title.Parent               = header
+    title.AnchorPoint          = Vector2.new(0.5, 0.5)
+    title.Position             = UDim2.new(0.5,0,0.9,0)
+    title.Size                 = UDim2.new(0.9,0,0.9,0)
+    title.BackgroundTransparency = 1
+    title.Font                 = Enum.Font.GothamBold
+    title.TextSize             = 22
+    title.Text                 = Ctitle
+    title.TextXAlignment       = Enum.TextXAlignment.Left
+    title.TextYAlignment       = Enum.TextYAlignment.Top
+    title.TextColor3           = Color3.new(240,240,240)
+
+    -- corner rounding
+    local ro = Instance.new("UICorner")
+    ro.Parent = component.guiObject
+    ro.CornerRadius = UDim.new(0,10)
+
+end
+
+-- Creates a new Description component used to display information or describe something on the screen.
+function tab:NewDescriptionComponent(Description: string, lines: number, defaultValue: boolean)
+    -- initialize component data
+    local component = {}
+    component.index = tab.CalculateComponentIndex()
+    component.value = defaultValue
+    component.isHidden = false
+    table.insert(tab.components, component)
+
+    -- container frame: auto-sized vertically, with 6px margin on all sides
+    component.guiObject = Instance.new("Frame")
+    component.guiObject.Parent = tab.ContentArea
+    component.guiObject.BackgroundColor3 = Color3.fromRGB(60,60,60)
+    component.guiObject.ClipsDescendants = false
+
+    -- add padding for margin
+    local padding = Instance.new("UIPadding")
+    local margin = 8
+    padding.Parent = component.guiObject
+    padding.PaddingLeft = UDim.new(0, margin)
+    padding.PaddingRight = UDim.new(0, margin)
+    padding.PaddingTop = UDim.new(0, margin)
+    padding.PaddingBottom = UDim.new(0, margin)
+
+    -- layout to stack header & description
+    component.layout = Instance.new("UIListLayout")
+    component.layout.Parent = component.guiObject
+    component.SortOrder = Enum.SortOrder.LayoutOrder
+    component.Padding = UDim.new(0, 8)  -- 8px between header & desc
+
+
+    -- (Optionally add a title or header text here)
+
+    -- description row (LayoutOrder = 2)
+    local desc = Instance.new("TextLabel")
+    desc.Name = "Description"
+    desc.Parent = component.guiObject
+    desc.LayoutOrder = 2
+    desc.Size = UDim2.new(1,0,0,0)        -- full width inside padding, auto height
+    desc.BackgroundTransparency = 1
+    desc.Font = Enum.Font.Gotham
+    desc.TextSize = 16
+    desc.Text = Description
+    desc.TextXAlignment = Enum.TextXAlignment.Left
+    desc.TextYAlignment = Enum.TextYAlignment.Top
+    desc.TextColor3 = Color3.new(240,240,240)
+    desc.TextWrapped = true                -- wrap long text
+    desc.AutomaticSize = Enum.AutomaticSize.Y  -- auto-grow height
+
+    -- corner rounding
+    local ro = Instance.new("UICorner")
+    ro.Parent = component.guiObject
+    ro.CornerRadius = UDim.new(0,10)
+
+    print(desc.AbsoluteSize.Y)
+
+    component.guiObject.Size = UDim2.new(0.8, 0, 0, 16 * lines + tab.componentMargin + tab.componentMargin)           -- height will grow
+    component.guiObject.Position = UDim2.new(0,24,0,tab.CalculateComponentOffset(component))
+
+end
+-- Creates a new Divider component used to seperate components
+function tab:NewDividerComponent()
+    -- initialize component data
+    local component = {}
+    component.index = tab.CalculateComponentIndex()
+    component.isHidden = false
+    table.insert(tab.components, component)
+
+    -- container frame: auto-sized vertically, with 6px margin on all sides
+    component.guiObject = Instance.new("Frame")
+    component.guiObject.Parent = tab.ContentArea
+    component.guiObject.BackgroundColor3 = Color3.fromRGB(60,60,60)
+    component.guiObject.ClipsDescendants = false
+
+    -- add padding for margin
+    local padding = Instance.new("UIPadding")
+    local margin = 8
+    padding.Parent = component.guiObject
+    padding.PaddingLeft = UDim.new(0, margin)
+    padding.PaddingRight = UDim.new(0, margin)
+    padding.PaddingTop = UDim.new(0, margin)
+    padding.PaddingBottom = UDim.new(0, margin)
+
+    -- layout to stack header & description
+    component.layout = Instance.new("UIListLayout")
+    component.layout.Parent = component.guiObject
+    component.layout.SortOrder = Enum.SortOrder.LayoutOrder
+    component.layout.Padding = UDim.new(0, 12)  -- 8px between header & desc
+
+
+    -- (Optionally add a title or header text here)
+
+
+    -- corner rounding
+    local ro = Instance.new("UICorner")
+    ro.Parent = component.guiObject
+    ro.CornerRadius = UDim.new(0,10)
+
+
+    component.guiObject.Size = UDim2.new(0.8, 0, 0, 4)           -- height will grow
+    component.guiObject.Position = UDim2.new(0,24,0,tab.CalculateComponentOffset(component))
+
+end
 
 
     return tab
@@ -789,6 +1044,17 @@ local SettingsTab = Window:NewTab("Settings", "Settings")
 
 local TestToggle = HomeTab:NewToggleComponent("Test", "This is a test toggle.", false)
 
+local PerformanceLabel = ScriptsTab:NewLabelComponent("Performance")
+local PerformanceDesc = ScriptsTab:NewDescriptionComponent("These scripts help decrease lag and make gameplay smoother.", 2)
+ScriptsTab:NewDividerComponent()
 
+local AntiLag = ScriptsTab:NewToggleComponent("Anti-Lag", "Lowers graphics and removes textures to decrease lag",false)
+
+local DebugModeToggle =HomeTab:NewToggleComponent("Debug-mode", "Enables debug mode", false)
+
+local AntiKick = ScriptsTab:NewCheckboxComponent("Anti-Kick", "Prevents client-side scripts from kicking you.", false)
+
+local DebugModeToggle2 =ScriptsTab:NewToggleComponent("Debug-mode", "Enables debug mode", false)
+local AntiLag2 = ScriptsTab:NewToggleComponent("Anti-Lag", "Lowers graphics and removes textures to decrease lag",false)
 
 
