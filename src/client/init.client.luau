@@ -186,6 +186,144 @@ function isHoveringOverObj(obj)
 		end
 end
 
+
+-- Create a new Slider.
+function Raptor.NewSlider(Start, Max, DefaultValue, ParentGUI)
+
+local SliderN = {}
+
+local Frame = Instance.new("Frame")
+local Fill = Instance.new("Frame")
+local UICorner = Instance.new("UICorner")
+local TextButton = Instance.new("TextButton")
+local TextLabel = Instance.new("TextLabel")
+local UICorner_2 = Instance.new("UICorner")
+
+--Properties:
+
+Frame.Parent = ParentGUI
+Frame.BackgroundColor3 = Color3.fromRGB(13, 35, 58)
+Frame.BorderColor3 = Color3.fromRGB(0, 0, 0)
+Frame.BorderSizePixel = 0
+Frame.Position = UDim2.new(0.0957987159, 0, 0.111265644, 0)
+Frame.Size = UDim2.new(0, 235, 0, 19)
+
+SliderN.guiObject = Frame
+
+Fill.Name = "Fill"
+Fill.Parent = Frame
+Fill.BackgroundColor3 = Color3.fromRGB(42, 163, 255)
+Fill.BorderColor3 = Color3.fromRGB(0, 0, 0)
+Fill.BorderSizePixel = 0
+Fill.Size = UDim2.new(0.5, 0, 1, 0)
+
+UICorner.Parent = Fill
+
+TextButton.Parent = Frame
+TextButton.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
+TextButton.BackgroundTransparency = 1.000
+TextButton.BorderColor3 = Color3.fromRGB(0, 0, 0)
+TextButton.BorderSizePixel = 0
+TextButton.Size = UDim2.new(1, 0, 1, 0)
+TextButton.Font = Enum.Font.SourceSans
+TextButton.TextColor3 = Color3.fromRGB(0, 0, 0)
+TextButton.TextSize = 14.000
+TextButton.TextTransparency = 1.000
+
+TextLabel.Parent = Frame
+TextLabel.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
+TextLabel.BackgroundTransparency = 1.000
+TextLabel.BorderColor3 = Color3.fromRGB(0, 0, 0)
+TextLabel.BorderSizePixel = 0
+TextLabel.Position = UDim2.new(0, 0, 0.25, 0)
+TextLabel.Size = UDim2.new(1, 0, 0.5, 0)
+TextLabel.Font = Enum.Font.SourceSans
+TextLabel.TextColor3 = Color3.fromRGB(0, 0, 0)
+TextLabel.TextSize = 14.000
+
+UICorner_2.Parent = Frame
+
+-- Scripts:
+
+
+	local script = Instance.new('LocalScript', Frame)
+
+	local m = game.Players.LocalPlayer:GetMouse()
+	local Slider = script.Parent
+	local Trigger = TextButton
+	local Value = DefaultValue
+	local Label = TextLabel
+    
+    Max = Max or 0.7
+    Start = Start or 0.4
+
+	local MaxValue = Max
+	local StartingValue = Start
+	
+	Fill.Size = UDim2.fromScale(Value, 1)
+    Fill.BackgroundColor3 = Raptor.AccentColor
+	Label.Text = tostring(math.round(Value*100))
+	Label.Font = Enum.Font.GothamBold
+	
+	if StartingValue >= 0.5 then
+		Label.TextColor3 = Color3.fromRGB(0,0,0)
+	else
+		Label.TextColor3 = Color3.fromRGB(240,240,240)
+	end
+	
+	local TweenService = game:GetService("TweenService")
+	local TweenStyle = TweenInfo.new(0.25, Enum.EasingStyle.Exponential)
+	
+	
+	function SliderN:UpdateSlider()
+		local output = math.clamp((m.X - Slider.AbsolutePosition.X) / Slider.AbsoluteSize.X, 0,1)
+		
+		Label.Text = tostring(math.round(output*100))
+
+		local outputClamped = StartingValue + (output * (MaxValue - StartingValue))
+		
+        SliderN.output = math.round(StartingValue + (output *(MaxValue - StartingValue)))
+        print(SliderN.output)
+
+		if Value ~= StartingValue + (output * (MaxValue - StartingValue)) then
+			TweenService:Create(Fill, TweenStyle, {Size = UDim2.fromScale(output,1)}):Play()
+		end
+		
+		-- some text things
+		if math.round(output*100) > 50 then
+			Label.TextColor3 = Color3.fromRGB(0,0,0)
+		else
+			Label.TextColor3 = Color3.fromRGB(240,240,240)
+		end
+		
+		Value = outputClamped
+	end
+	
+	
+	local sliderActive = false
+	
+	function SliderN.ActivateSlider()
+		sliderActive = true
+		while sliderActive do
+			SliderN:UpdateSlider()
+			task.wait()
+		end
+	end
+	
+	Trigger.MouseButton1Down:Connect(SliderN.ActivateSlider)
+	
+	game:GetService("UserInputService").InputEnded:Connect(function(inp, _gp) 
+		if inp.UserInputType == Enum.UserInputType.MouseButton1 or Enum.UserInputType.Touch then
+			sliderActive = false
+		end	
+	end)
+	
+    return SliderN
+end
+
+
+
+
 -- Gets a TextureID that can be used in Image labels/buttons by a name.
 function Raptor.GetIconFromName(name)
 	if name == "Home" then return "rbxassetid://137149858518531" end
@@ -1374,6 +1512,57 @@ function tab:NewClickableComponent(Ctitle: string)
     return component
     end
 
+    -- Creates a new Label component used to display information or text on the screen.
+function tab:NewSliderComponent(Ctitle: string, MinValue: number, MaxValue: number, DefaultValue)
+    -- initialize component data
+    local component = {}
+    component.index = tab.CalculateComponentIndex()
+    component.value = DefaultValue
+    component.isHidden = false
+    table.insert(tab.components, component)
+
+    -- container frame: fixed header (24px) + desc (24px) + padding (16px) total 64px
+    component.guiObject = Instance.new("Frame")
+    component.guiObject.Parent = tab.ContentArea
+    component.guiObject.BackgroundColor3 = Color3.fromRGB(60,60,60)
+    component.guiObject.Size = UDim2.new(0.8, 0, 0, 72)
+    component.guiObject.Position = UDim2.new(0,24,0,tab.CalculateComponentOffset(component))
+
+    -- header row
+    local header = Instance.new("Frame")
+    header.Name = "Header"
+    header.Parent = component.guiObject
+    header.Size = UDim2.new(1,0,0,24)
+    header.BackgroundTransparency = 1
+    -- title centered horizontally
+    local title = Instance.new("TextLabel")
+    title.Name                 = "Title"
+    title.Parent               = header
+    title.AnchorPoint          = Vector2.new(0.5, 0.5)
+    title.Position             = UDim2.new(0.5,0,0.9,0)
+    title.Size                 = UDim2.new(0.9,0,0.9,0)
+    title.BackgroundTransparency = 1
+    title.Font                 = Enum.Font.GothamBold
+    title.TextSize             = 22
+    title.Text                 = Ctitle
+    title.TextXAlignment       = Enum.TextXAlignment.Left
+    title.TextYAlignment       = Enum.TextYAlignment.Top
+    title.TextColor3           = Color3.new(240,240,240)
+
+    -- corner rounding
+    local ro = Instance.new("UICorner")
+    ro.Parent = component.guiObject
+    ro.CornerRadius = UDim.new(0,10)
+
+    local slider = Raptor.NewSlider(MinValue, MaxValue, DefaultValue / 100,component.guiObject)
+
+    slider.guiObject.Position = UDim2.new(0,12,0.6,0)
+
+    print("hereee: " .. tostring(slider.output))
+    component.sliderValue = slider.output
+
+    return component
+end
 
     return tab
 end
@@ -1415,8 +1604,12 @@ function test2()
 end
 test.OnKeyPressed(test2)
 
-local Clickable = SettingsTab:NewClickableComponent("Disable anticheat")
-Clickable.OnClick(test2)
 
-local Clickable2 = SettingsTab:NewClickableComponent("Disable anticheat")
-Clickable2.OnClick(test2)
+
+local FovSlider = SettingsTab:NewSliderComponent("Field of view", 40, 100, 70)
+
+local Clickable = SettingsTab:NewClickableComponent("Print FOV")
+function printFov()
+    print(FovSlider.sliderValue)
+end
+Clickable.OnClick(printFov)
