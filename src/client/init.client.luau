@@ -243,6 +243,11 @@ TextLabel.TextSize = 14.000
 
 UICorner_2.Parent = Frame
 
+
+
+
+
+
 -- Scripts:
 
 
@@ -277,13 +282,15 @@ UICorner_2.Parent = Frame
 	
 	function SliderN:UpdateSlider()
 		local output = math.clamp((m.X - Slider.AbsolutePosition.X) / Slider.AbsoluteSize.X, 0,1)
-		
-		Label.Text = tostring(math.round(output*100))
 
-		local outputClamped = StartingValue + (output * (MaxValue - StartingValue))
+        local outputClamped = StartingValue + (output * (MaxValue - StartingValue))
+
+		Label.Text = tostring(math.round(outputClamped))
+
+
 		
         SliderN.output = math.round(StartingValue + (output *(MaxValue - StartingValue)))
-        print(SliderN.output)
+
 
 		if Value ~= StartingValue + (output * (MaxValue - StartingValue)) then
 			TweenService:Create(Fill, TweenStyle, {Size = UDim2.fromScale(output,1)}):Play()
@@ -317,7 +324,9 @@ UICorner_2.Parent = Frame
 			sliderActive = false
 		end	
 	end)
-	
+
+    SliderN.output = DefaultValue * 100
+
     return SliderN
 end
 
@@ -804,15 +813,10 @@ list.Padding              = UDim.new(0, 8)                   -- gap between icon
 
 	function tab.CalculateComponentOffset(comp)
 		tab.currentComponentOffset = tab.currentComponentOffset + comp.guiObject.AbsoluteSize.Y + tab.componentMargin
-        print(tab.currentComponentOffset - comp.guiObject.AbsoluteSize.Y)
-        print(comp.guiObject.Parent)
 		return tab.currentComponentOffset - comp.guiObject.AbsoluteSize.Y
 	end
     function tab.CalculateComponentOffset2(comp)
-        print(comp.layout)
 		tab.currentComponentOffset = tab.currentComponentOffset + comp.layout.AbsoluteContentSize.Y + tab.componentMargin
-        print(tab.currentComponentOffset - comp.layout.AbsoluteContentSize.Y)
-        print(comp.guiObject.Parent)
 		return tab.currentComponentOffset - comp.layout.AbsoluteContentSize.Y
 	end
 	function tab.CalculateComponentIndex()
@@ -1217,8 +1221,6 @@ function tab:NewDescriptionComponent(Description: string, lines: number, default
     ro.Parent = component.guiObject
     ro.CornerRadius = UDim.new(0,10)
 
-    print(desc.AbsoluteSize.Y)
-
     component.guiObject.Size = UDim2.new(0.8, 0, 0, 16 * lines + tab.componentMargin + tab.componentMargin)           -- height will grow
     component.guiObject.Position = UDim2.new(0,24,0,tab.CalculateComponentOffset(component))
 
@@ -1558,8 +1560,15 @@ function tab:NewSliderComponent(Ctitle: string, MinValue: number, MaxValue: numb
 
     slider.guiObject.Position = UDim2.new(0,12,0.6,0)
 
-    print("hereee: " .. tostring(slider.output))
     component.sliderValue = slider.output
+
+    local sliderUpdateThread = task.spawn(function()
+        while not window.isHidden == true do
+        task.wait(0.1)
+        component.sliderValue = slider.output
+        end
+    end)
+    
 
     return component
 end
