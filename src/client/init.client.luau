@@ -279,6 +279,10 @@ UICorner_2.Parent = Frame
 	local TweenService = game:GetService("TweenService")
 	local TweenStyle = TweenInfo.new(0.25, Enum.EasingStyle.Exponential)
 	
+    -- callback fn stuff
+    SliderN.callbackfn = function()
+        
+    end
 	
 	function SliderN:UpdateSlider()
 		local output = math.clamp((m.X - Slider.AbsolutePosition.X) / Slider.AbsoluteSize.X, 0,1)
@@ -286,7 +290,6 @@ UICorner_2.Parent = Frame
         local outputClamped = StartingValue + (output * (MaxValue - StartingValue))
 
 		Label.Text = tostring(math.round(outputClamped))
-
 
 		
         SliderN.output = math.round(StartingValue + (output *(MaxValue - StartingValue)))
@@ -304,6 +307,8 @@ UICorner_2.Parent = Frame
 		end
 		
 		Value = outputClamped
+
+        SliderN.callbackfn()
 	end
 	
 	
@@ -1562,6 +1567,17 @@ function tab:NewSliderComponent(Ctitle: string, MinValue: number, MaxValue: numb
 
     component.sliderValue = slider.output
 
+    component.callbackfn = function()
+        
+    end
+
+
+    -- Runs a function when the slider's value changes
+    component.OnSliderChanged = function(callback)
+        slider.callbackfn = callback
+    end
+
+
     local sliderUpdateThread = task.spawn(function()
         while not window.isHidden == true do
         task.wait(0.1)
@@ -1607,7 +1623,6 @@ local AntiLag2 = ScriptsTab:NewToggleComponent("Anti-Lag", "Lowers graphics and 
 local test = ScriptsTab:NewKeybindComponent("test", Enum.KeyCode.Z)
 
 
-
 function test2()
     print("execution")
 end
@@ -1620,5 +1635,12 @@ local FovSlider = SettingsTab:NewSliderComponent("Field of view", 40, 100, 70)
 local Clickable = SettingsTab:NewClickableComponent("Print FOV")
 function printFov()
     print(FovSlider.sliderValue)
+    
 end
+
+FovSlider.OnSliderChanged(function()
+    local camera = workspace.CurrentCamera
+    camera.FieldOfView = FovSlider.sliderValue
+end)
+
 Clickable.OnClick(printFov)
